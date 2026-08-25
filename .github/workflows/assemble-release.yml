@@ -52,7 +52,7 @@ jobs:
           echo "assembled_size=$actual_size"
           echo "assembled_sha256=$actual_sha"
           test "$actual_size" = "315686487"
-          test "$actual_sha" = "1717F18A366443268063EE0801EFDD45A9C2FED13D5A6264C3E57B263399C18A"
+          test "$actual_sha" = "1717f18a366443268063ee0801efdd45a9c2fed13d5a6264c3e57b263399c18a"
 
       - name: Upload final ZIP
         env:
