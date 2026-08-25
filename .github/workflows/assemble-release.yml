@@ -23,10 +23,11 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         run: |
           mkdir -p parts
-          gh release download "$RELEASE_TAG" \
-            --repo "$REPOSITORY" \
-            --pattern 'EDK2-Portable-DevKit-0.1.0-dev-windows-x64.zip.part-*' \
-            --dir parts
+          gh api "repos/$REPOSITORY/releases/tags/$RELEASE_TAG" --jq '.assets[] | select(.name | startswith("EDK2-Portable-DevKit-0.1.0-dev-windows-x64.zip.part-")) | [.name, .browser_download_url] | @tsv' > asset-list.tsv
+          test "$(wc -l < asset-list.tsv)" = "76"
+          while IFS=$'\t' read -r name url; do
+            curl --fail --retry 5 --retry-delay 2 --location "$url" --output "parts/$name"
+          done < asset-list.tsv
           python3 - <<'PY'
           from pathlib import Path
 
