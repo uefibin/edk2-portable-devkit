@@ -1,0 +1,80 @@
+name: Assemble release ZIP
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag to assemble
+        required: true
+        type: string
+        default: v0.1.0-dev
+
+permissions:
+  contents: write
+
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and combine release parts
+        env:
+          GH_TOKEN: \${{ github.token }}
+          RELEASE_TAG: \${{ inputs.release_tag }}
+          REPOSITORY: \${{ github.repository }}
+        run: |
+          mkdir -p parts
+          gh release download "$RELEASE_TAG" \
+            --repo "$REPOSITORY" \
+            --pattern 'EDK2-Portable-DevKit-0.1.0-dev-windows-x64.zip.part-*' \
+            --dir parts
+          python3 - <<'PY'
+          from pathlib import Path
+
+          output = Path("EDK2-Portable-DevKit-0.1.0-dev-windows-x64.zip")
+          parts = sorted(Path("parts").glob("EDK2-Portable-DevKit-0.1.0-dev-windows-x64.zip.part-*"))
+          if len(parts) != 76:
+              raise SystemExit(f"expected 76 parts, found {len(parts)}")
+          with output.open("wb") as destination:
+              for part in parts:
+                  with part.open("rb") as source:
+                      while True:
+                          block = source.read(1024 * 1024)
+                          if not block:
+                              break
+                          destination.write(block)
+          PY
+          test "$(stat -c '%s' EDK2-Portable-DevKit-0.1.0-dev-windows-x64.zip)" = "315686487"
+          test "$(sha256sum EDK2-Portable-DevKit-0.1.0-dev-windows-x64.zip | cut -d' ' -f1)" = "1717F18A366443268063EE0801EFDD45A9C2FED13D5A6264C3E57B263399C18A"
+
+      - name: Upload final ZIP
+        env:
+          GH_TOKEN: \${{ github.token }}
+          RELEASE_TAG: \${{ inputs.release_tag }}
+          REPOSITORY: \${{ github.repository }}
+        run: |
+          gh release upload "$RELEASE_TAG" \
+            EDK2-Portable-DevKit-0.1.0-dev-windows-x64.zip \
+            --repo "$REPOSITORY" \
+            --clobber
+
+      - name: Verify final asset
+        env:
+          GH_TOKEN: \${{ github.token }}
+          RELEASE_TAG: \${{ inputs.release_tag }}
+          REPOSITORY: \${{ github.repository }}
+        run: |
+          size="$(gh release view "$RELEASE_TAG" --repo "$REPOSITORY" --json assets --jq '.assets[] | select(.name == "EDK2-Portable-DevKit-0.1.0-dev-windows-x64.zip") | .size')"
+          test "$size" = "315686487"
+
+      - name: Remove temporary release parts
+        if: success()
+        env:
+          GH_TOKEN: \${{ github.token }}
+          RELEASE_TAG: \${{ inputs.release_tag }}
+          REPOSITORY: \${{ github.repository }}
+        run: |
+          gh release view "$RELEASE_TAG" --repo "$REPOSITORY" --json assets --jq '.assets[].name' |
+            grep '^EDK2-Portable-DevKit-0.1.0-dev-windows-x64.zip.part-' |
+            while IFS= read -r asset; do
+              gh release delete-asset "$RELEASE_TAG" "$asset" --repo "$REPOSITORY" --yes
+            done
