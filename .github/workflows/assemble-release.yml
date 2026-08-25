@@ -18,9 +18,9 @@ jobs:
     steps:
       - name: Download and combine release parts
         env:
-          GH_TOKEN: \${{ github.token }}
-          RELEASE_TAG: \${{ inputs.release_tag }}
-          REPOSITORY: \${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           mkdir -p parts
           gh release download "$RELEASE_TAG" \
@@ -48,9 +48,9 @@ jobs:
 
       - name: Upload final ZIP
         env:
-          GH_TOKEN: \${{ github.token }}
-          RELEASE_TAG: \${{ inputs.release_tag }}
-          REPOSITORY: \${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           gh release upload "$RELEASE_TAG" \
             EDK2-Portable-DevKit-0.1.0-dev-windows-x64.zip \
@@ -59,9 +59,9 @@ jobs:
 
       - name: Verify final asset
         env:
-          GH_TOKEN: \${{ github.token }}
-          RELEASE_TAG: \${{ inputs.release_tag }}
-          REPOSITORY: \${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           size="$(gh release view "$RELEASE_TAG" --repo "$REPOSITORY" --json assets --jq '.assets[] | select(.name == "EDK2-Portable-DevKit-0.1.0-dev-windows-x64.zip") | .size')"
           test "$size" = "315686487"
@@ -69,9 +69,9 @@ jobs:
       - name: Remove temporary release parts
         if: success()
         env:
-          GH_TOKEN: \${{ github.token }}
-          RELEASE_TAG: \${{ inputs.release_tag }}
-          REPOSITORY: \${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           gh release view "$RELEASE_TAG" --repo "$REPOSITORY" --json assets --jq '.assets[].name' |
             grep '^EDK2-Portable-DevKit-0.1.0-dev-windows-x64.zip.part-' |
